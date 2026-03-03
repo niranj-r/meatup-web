@@ -12,6 +12,7 @@ import {
   Switch,
   Platform,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MapPin, Clock, Wallet, Navigation, FileText, ChevronLeft, CheckCircle2, Truck, TicketPercent, Sparkles } from 'lucide-react-native';
@@ -22,20 +23,21 @@ import { useApp } from '@/contexts/AppContext';
 import { calculateDistance, calculateDeliveryTime, STORE_LOCATION } from '@/utils/locationUtils';
 import OrderSuccessModal from '@/components/OrderSuccessModal';
 import RazorpayCheckoutGateway from '@/components/RazorpayCheckoutGateway';
-import { encode } from 'base-64';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/config/firebaseConfig';
 
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= 1024;
   const { cart, cartTotal, user, placeOrder } = useApp();
   const [address, setAddress] = useState(user.address || '');
   const [useWalletPoints, setUseWalletPoints] = useState(false);
   const [note, setNote] = useState('');
   const [orderSuccessVisible, setOrderSuccessVisible] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cod'>('cod');
   const [showRazorpayGateway, setShowRazorpayGateway] = useState(false);
   const [currentRazorpayOrderId, setCurrentRazorpayOrderId] = useState('');
 
@@ -47,7 +49,7 @@ export default function CheckoutScreen() {
   const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
 
   // Tax Calculation
-  const taxRate = 0; // 0% for now
+  const taxRate = 0.05; // 5% for now
   const taxAmount = cartTotal * taxRate;
 
   // Delivery Charge Calculation
@@ -286,7 +288,7 @@ export default function CheckoutScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* 1. Custom Header matching Profile.tsx */}
-      <View style={[styles.headerBg, { paddingTop: insets.top }]}>
+      <View style={[styles.headerBg, { paddingTop: insets.top + 20 }]}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <ChevronLeft size={28} color={Colors.cream} />
@@ -301,252 +303,293 @@ export default function CheckoutScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
-        {/* First Order Discount Banner */}
-        {firstOrderDiscount > 0 && (
-          <View style={styles.discountBanner}>
-            <View style={styles.discountIconContainer}>
-              <TicketPercent size={24} color={Colors.white} />
-            </View>
-            <View style={styles.discountContent}>
-              <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
-              <Text style={styles.discountSubtitle}>
-                You'll save 10% on this order as a welcome gift.
-              </Text>
-            </View>
-            <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
+        <View style={[
+          styles.scrollContent,
+          isLargeScreen && styles.largeScreenContent
+        ]}>
+          {/* Header/Banner Section */}
+          <View style={isLargeScreen ? { marginBottom: 24 } : null}>
+            {/* First Order Discount Banner */}
+            {firstOrderDiscount > 0 && (
+              <View style={styles.discountBanner}>
+                <View style={styles.discountIconContainer}>
+                  <TicketPercent size={24} color={Colors.white} />
+                </View>
+                <View style={styles.discountContent}>
+                  <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
+                  <Text style={styles.discountSubtitle}>
+                    You'll save 10% on this order as a welcome gift.
+                  </Text>
+                </View>
+                <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
+              </View>
+            )}
           </View>
-        )}
 
-        {/* 2. Unified Delivery Card */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Delivery Details</Text>
-          <View style={styles.card}>
-            {/* Address Input */}
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <MapPin size={14} color={Colors.deepTeal} style={{ marginRight: 6 }} />
-                <Text style={styles.label}>Address</Text>
-              </View>
-              <TextInput
-                style={styles.input}
-                value={address}
-                onChangeText={setAddress}
-                placeholder="House No, Building, Landmark, City..."
-                placeholderTextColor="#999"
-                multiline
-              />
-              <TouchableOpacity
-                style={styles.locateButton}
-                onPress={getCurrentLocation}
-                disabled={locationLoading}
-              >
-                {locationLoading ? (
-                  <ActivityIndicator size="small" color={Colors.deepTeal} />
-                ) : (
-                  <>
-                    <Navigation size={14} color={Colors.deepTeal} />
-                    <Text style={styles.locateText}>Use Current Location</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              {locationError && <Text style={styles.errorText}>{locationError}</Text>}
-            </View>
+          <View style={[
+            styles.mainLayout,
+            isLargeScreen && styles.rowLayout
+          ]}>
+            {/* Left Column: Details & Preferences */}
+            <View style={[
+              styles.leftColumn,
+              isLargeScreen && styles.largeLeftColumn
+            ]}>
+              {/* 2. Unified Delivery Card */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Delivery Details</Text>
+                <View style={styles.card}>
+                  {/* Address Input */}
+                  <View style={styles.inputGroup}>
+                    <View style={styles.labelRow}>
+                      <MapPin size={14} color={Colors.deepTeal} style={{ marginRight: 6 }} />
+                      <Text style={styles.label}>Address</Text>
+                    </View>
+                    <TextInput
+                      style={styles.input}
+                      value={address}
+                      onChangeText={setAddress}
+                      placeholder="House No, Building, Landmark, City..."
+                      placeholderTextColor="#999"
+                      multiline
+                    />
+                    <TouchableOpacity
+                      style={styles.locateButton}
+                      onPress={getCurrentLocation}
+                      disabled={locationLoading}
+                    >
+                      {locationLoading ? (
+                        <ActivityIndicator size="small" color={Colors.deepTeal} />
+                      ) : (
+                        <>
+                          <Navigation size={14} color={Colors.deepTeal} />
+                          <Text style={styles.locateText}>Use Current Location</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    {locationError && <Text style={styles.errorText}>{locationError}</Text>}
+                  </View>
 
-            {/* Delivery Estimate Badge */}
-            <View style={styles.divider} />
-            <View style={styles.infoRow}>
-              <View style={styles.iconCircle}>
-                <Clock size={20} color={Colors.deepTeal} />
+                  {/* Delivery Estimate Badge */}
+                  <View style={styles.divider} />
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconCircle}>
+                      <Clock size={20} color={Colors.deepTeal} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Estimated Arrival</Text>
+                      <Text style={styles.infoValue}>
+                        {deliveryTime ? `${deliveryTime} mins` : 'Calculating...'}
+                      </Text>
+                    </View>
+                    {deliveryDistance && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{deliveryDistance} km</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
               </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Estimated Arrival</Text>
-                <Text style={styles.infoValue}>
-                  {deliveryTime ? `${deliveryTime} mins` : 'Calculating...'}
-                </Text>
+
+              {/* 3. Order Preferences */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Preferences</Text>
+                <View style={styles.card}>
+                  <View style={styles.inputGroup}>
+                    <View style={styles.labelRow}>
+                      <FileText size={14} color={Colors.deepTeal} style={{ marginRight: 6 }} />
+                      <Text style={styles.label}>Order Note</Text>
+                    </View>
+                    <TextInput
+                      style={[styles.input, { minHeight: 60, height: 'auto' }]}
+                      value={note}
+                      onChangeText={setNote}
+                      placeholder="e.g. Leave at door, Ring bell..."
+                      placeholderTextColor="#999"
+                    />
+                  </View>
+                </View>
               </View>
-              {deliveryDistance && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{deliveryDistance} km</Text>
+
+              {/* 4. Wallet (Matching Card Style) */}
+              {user.wallet_points > 0 && (
+                <View style={styles.sectionContainer}>
+                  <Text style={styles.sectionTitle}>Offers & Wallet</Text>
+                  <View style={styles.card}>
+                    <View style={styles.walletHeader}>
+                      <View>
+                        <Text style={styles.cardLabel}>Meat Points</Text>
+                        <Text style={styles.walletPoints}>{user.wallet_points}</Text>
+                        <Text style={styles.walletSub}>Available Balance</Text>
+                      </View>
+                      <View style={styles.walletIconContainer}>
+                        <Image source={require('../assets/images/cp-profile.png')} style={styles.walletIcon} resizeMode="contain" />
+                      </View>
+                    </View>
+
+                    <View style={styles.walletAction}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.walletSaveText}>
+                          Save <Text style={{ fontWeight: 'bold', color: Colors.orange }}>₹{maxWalletRedemption.toFixed(0)}</Text> on this order
+                        </Text>
+                      </View>
+                      <Switch
+                        trackColor={{ false: Colors.cream.substring(0, 7), true: Colors.deepTeal.substring(0, 7) }}
+                        thumbColor={useWalletPoints ? Colors.cream.substring(0, 7) : Colors.deepTeal.substring(0, 7)}
+                        ios_backgroundColor={Colors.cream.substring(0, 7)}
+                        onValueChange={setUseWalletPoints}
+                        value={useWalletPoints}
+                      />
+                    </View>
+                  </View>
                 </View>
               )}
             </View>
-          </View>
-        </View>
 
-        {/* 3. Order Preferences */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.card}>
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <FileText size={14} color={Colors.deepTeal} style={{ marginRight: 6 }} />
-                <Text style={styles.label}>Order Note</Text>
-              </View>
-              <TextInput
-                style={[styles.input, { minHeight: 60, height: 'auto' }]}
-                value={note}
-                onChangeText={setNote}
-                placeholder="e.g. Leave at door, Ring bell..."
-                placeholderTextColor="#999"
-              />
-            </View>
-          </View>
-        </View>
+            {/* Right Column: Summary & Payment */}
+            <View style={[
+              styles.rightColumn,
+              isLargeScreen && styles.largeRightColumn
+            ]}>
+              {/* 5. Bill Summary */}
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Payment Summary</Text>
+                <View style={styles.card}>
+                  {cart.map((item, index) => {
+                    let itemPrice = item.product.current_price;
+                    if (item.product.variants && item.cuttingType) {
+                      const variant = item.product.variants.find(v => v.name === item.cuttingType);
+                      if (variant) itemPrice = variant.price;
+                    }
 
-        {/* 4. Wallet (Matching Card Style) */}
-        {user.wallet_points > 0 && (
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Offers & Wallet</Text>
-            <View style={styles.card}>
-              <View style={styles.walletHeader}>
-                <View>
-                  <Text style={styles.cardLabel}>Meat Points</Text>
-                  <Text style={styles.walletPoints}>{user.wallet_points}</Text>
-                  <Text style={styles.walletSub}>Available Balance</Text>
-                </View>
-                <View style={styles.walletIconContainer}>
-                  <Image source={require('../assets/images/cp-profile.png')} style={styles.walletIcon} resizeMode="contain" />
-                </View>
-              </View>
+                    return (
+                      <View key={`${item.product.id}-${index}`} style={styles.billItemRow}>
+                        <Text style={styles.billItemQty}>{item.quantity}x</Text>
+                        <View style={{ flex: 1, paddingHorizontal: 10 }}>
+                          <Text style={styles.billItemName}>{item.product.name}</Text>
+                          <Text style={styles.billItemMeta}>{item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
+                        </View>
+                        <Text style={styles.billItemPrice}>
+                          ₹{(itemPrice * item.quantity * item.weight).toFixed(2)}
+                        </Text>
+                      </View>
+                    );
+                  })}
 
-              <View style={styles.walletAction}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.walletSaveText}>
-                    Save <Text style={{ fontWeight: 'bold', color: Colors.orange }}>₹{maxWalletRedemption.toFixed(0)}</Text> on this order
-                  </Text>
-                </View>
-                <Switch
-                  trackColor={{ false: Colors.cream.substring(0, 7), true: Colors.deepTeal.substring(0, 7) }}
-                  thumbColor={useWalletPoints ? Colors.cream.substring(0, 7) : Colors.deepTeal.substring(0, 7)}
-                  ios_backgroundColor={Colors.cream.substring(0, 7)}
-                  onValueChange={setUseWalletPoints}
-                  value={useWalletPoints}
-                />
-              </View>
-            </View>
-          </View>
-        )}
+                  <View style={styles.dashedLine} />
 
-        {/* 5. Bill Summary */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Payment Summary</Text>
-          <View style={styles.card}>
-            {cart.map((item, index) => {
-              let itemPrice = item.product.current_price;
-              if (item.product.variants && item.cuttingType) {
-                const variant = item.product.variants.find(v => v.name === item.cuttingType);
-                if (variant) itemPrice = variant.price;
-              }
-
-              return (
-                <View key={`${item.product.id}-${index}`} style={styles.billItemRow}>
-                  <Text style={styles.billItemQty}>{item.quantity}x</Text>
-                  <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                    <Text style={styles.billItemName}>{item.product.name}</Text>
-                    <Text style={styles.billItemMeta}>{item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Subtotal</Text>
+                    <Text style={styles.summaryValue}>₹{cartTotal.toFixed(2)}</Text>
                   </View>
-                  <Text style={styles.billItemPrice}>
-                    ₹{(itemPrice * item.quantity * item.weight).toFixed(2)}
-                  </Text>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Tax ({(taxRate * 100).toFixed(0)}%)</Text>
+                    <Text style={styles.summaryValue}>+₹{taxAmount.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Delivery Charge</Text>
+                    <Text style={[styles.summaryValue, deliveryCharge === 0 && { color: Colors.priceUp }]}>
+                      {deliveryCharge === 0 ? 'Free' : `+₹${deliveryCharge.toFixed(2)}`}
+                    </Text>
+                  </View>
+
+                  {firstOrderDiscount > 0 && (
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: Colors.priceUp }]}>New User Discount</Text>
+                      <Text style={[styles.summaryValue, { color: Colors.priceUp }]}>-₹{firstOrderDiscount.toFixed(2)}</Text>
+                    </View>
+                  )}
+
+                  {useWalletPoints && walletDeduction > 0 && (
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: Colors.orange }]}>Points Redeemed</Text>
+                      <Text style={[styles.summaryValue, { color: Colors.orange }]}>-₹{walletDeduction.toFixed(2)}</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.totalDivider} />
+
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>Total Payable</Text>
+                    <Text style={styles.totalValue}>₹{finalTotal.toFixed(2)}</Text>
+                  </View>
+
+                  <View style={{ marginTop: 20 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.charcoal, marginBottom: 12 }}>Pay Via</Text>
+
+                    {/* Online Payment Hidden as per user request */}
+                    {/* <TouchableOpacity
+                      style={[
+                        styles.paymentMethodCard,
+                        paymentMethod === 'online' && styles.paymentMethodCardActive
+                      ]}
+                      onPress={() => setPaymentMethod('online')}
+                    >
+                      <View style={[styles.radioCircle, paymentMethod === 'online' && styles.radioCircleActive]}>
+                        {paymentMethod === 'online' && <View style={styles.radioInner} />}
+                      </View>
+                      <Wallet size={20} color={paymentMethod === 'online' ? Colors.deepTeal : '#888'} />
+                      <View style={{ marginLeft: 12 }}>
+                        <Text style={[styles.pmTitle, paymentMethod === 'online' && styles.pmTitleActive]}>Pay Online</Text>
+                        <Text style={styles.pmSub}>UPI, Cards, Wallets, NetBanking</Text>
+                      </View>
+                    </TouchableOpacity> */}
+
+                    <TouchableOpacity
+                      style={[
+                        styles.paymentMethodCard,
+                        paymentMethod === 'cod' && styles.paymentMethodCardActive,
+                        { marginTop: 12 }
+                      ]}
+                      onPress={() => setPaymentMethod('cod')}
+                    >
+                      <View style={[styles.radioCircle, paymentMethod === 'cod' && styles.radioCircleActive]}>
+                        {paymentMethod === 'cod' && <View style={styles.radioInner} />}
+                      </View>
+                      <CheckCircle2 size={20} color={paymentMethod === 'cod' ? Colors.deepTeal : '#888'} />
+                      <View style={{ marginLeft: 12 }}>
+                        <Text style={[styles.pmTitle, paymentMethod === 'cod' && styles.pmTitleActive]}>Cash on Delivery</Text>
+                        <Text style={styles.pmSub}>Pay cash at the time of delivery</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Desktop PLACE ORDER button */}
+                  {isLargeScreen && (
+                    <TouchableOpacity
+                      style={[styles.checkoutBtn, { marginTop: 24 }]}
+                      onPress={handlePlaceOrder}
+                    >
+                      <View style={styles.btnContent}>
+                        <Text style={styles.btnText}>PLACE ORDER</Text>
+                        <View style={styles.btnDivider} />
+                        <Text style={styles.btnPrice}>₹{finalTotal.toFixed(2)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
                 </View>
-              );
-            })}
-
-            <View style={styles.dashedLine} />
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>₹{cartTotal.toFixed(2)}</Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tax ({(taxRate * 100).toFixed(0)}%)</Text>
-              <Text style={styles.summaryValue}>+₹{taxAmount.toFixed(2)}</Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Charge</Text>
-              <Text style={[styles.summaryValue, deliveryCharge === 0 && { color: Colors.priceUp }]}>
-                {deliveryCharge === 0 ? 'Free' : `+₹${deliveryCharge.toFixed(2)}`}
-              </Text>
-            </View>
-
-            {firstOrderDiscount > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: Colors.priceUp }]}>New User Discount</Text>
-                <Text style={[styles.summaryValue, { color: Colors.priceUp }]}>-₹{firstOrderDiscount.toFixed(2)}</Text>
               </View>
-            )}
-
-            {useWalletPoints && walletDeduction > 0 && (
-              <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: Colors.orange }]}>Points Redeemed</Text>
-                <Text style={[styles.summaryValue, { color: Colors.orange }]}>-₹{walletDeduction.toFixed(2)}</Text>
-              </View>
-            )}
-
-            <View style={styles.totalDivider} />
-
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Payable</Text>
-              <Text style={styles.totalValue}>₹{finalTotal.toFixed(2)}</Text>
-            </View>
-
-            <View style={{ marginTop: 20 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.charcoal, marginBottom: 12 }}>Pay Via</Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.paymentMethodCard,
-                  paymentMethod === 'online' && styles.paymentMethodCardActive
-                ]}
-                onPress={() => setPaymentMethod('online')}
-              >
-                <View style={[styles.radioCircle, paymentMethod === 'online' && styles.radioCircleActive]}>
-                  {paymentMethod === 'online' && <View style={styles.radioInner} />}
-                </View>
-                <Wallet size={20} color={paymentMethod === 'online' ? Colors.deepTeal : '#888'} />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={[styles.pmTitle, paymentMethod === 'online' && styles.pmTitleActive]}>Pay Online</Text>
-                  <Text style={styles.pmSub}>UPI, Cards, Wallets, NetBanking</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.paymentMethodCard,
-                  paymentMethod === 'cod' && styles.paymentMethodCardActive,
-                  { marginTop: 12 }
-                ]}
-                onPress={() => setPaymentMethod('cod')}
-              >
-                <View style={[styles.radioCircle, paymentMethod === 'cod' && styles.radioCircleActive]}>
-                  {paymentMethod === 'cod' && <View style={styles.radioInner} />}
-                </View>
-                <CheckCircle2 size={20} color={paymentMethod === 'cod' ? Colors.deepTeal : '#888'} />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={[styles.pmTitle, paymentMethod === 'cod' && styles.pmTitleActive]}>Cash on Delivery</Text>
-                  <Text style={styles.pmSub}>Pay cash at the time of delivery</Text>
-                </View>
-              </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: isLargeScreen ? 60 : 100 }} />
       </ScrollView>
 
-      {/* Floating Footer */}
-      <View style={styles.floatFooter}>
-        <TouchableOpacity style={styles.checkoutBtn} onPress={handlePlaceOrder}>
-          <View style={styles.btnContent}>
-            <Text style={styles.btnText}>PLACE ORDER</Text>
-            <View style={styles.btnDivider} />
-            <Text style={styles.btnPrice}>₹{finalTotal.toFixed(2)}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+      {/* Floating Footer - Only on Mobile */}
+      {!isLargeScreen && (
+        <View style={styles.floatFooter}>
+          <TouchableOpacity style={styles.checkoutBtn} onPress={handlePlaceOrder}>
+            <View style={styles.btnContent}>
+              <Text style={styles.btnText}>PLACE ORDER</Text>
+              <View style={styles.btnDivider} />
+              <Text style={styles.btnPrice}>₹{finalTotal.toFixed(2)}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <OrderSuccessModal
         visible={orderSuccessVisible}
@@ -616,7 +659,34 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingTop: 30, // Spacing from header
+    paddingTop: 24,
+    paddingBottom: 120,
+  },
+  largeScreenContent: {
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  mainLayout: {
+    flexDirection: 'column',
+  },
+  rowLayout: {
+    flexDirection: 'row',
+    gap: 24,
+    alignItems: 'flex-start',
+  },
+  leftColumn: {
+    flex: 1,
+  },
+  largeLeftColumn: {
+    flex: 1.6, // Allocate more space to details
+  },
+  rightColumn: {
+    flex: 1,
+  },
+  largeRightColumn: {
+    position: Platform.OS === 'web' ? 'sticky' : 'relative' as any,
+    top: 20,
   },
 
   discountBanner: {

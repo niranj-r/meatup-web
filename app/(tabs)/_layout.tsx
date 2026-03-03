@@ -1,10 +1,13 @@
 import { Tabs } from "expo-router";
-import { Image } from "react-native";
+import { Image, useWindowDimensions } from "react-native";
 import { Home, ShoppingCart, Package, User } from "lucide-react-native";
 import React from "react";
 import Colors from "@/constants/colors";
 
 export default function TabLayout() {
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= 768;
+
   return (
     <Tabs
       screenOptions={{
@@ -14,7 +17,19 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors.deepTeal,
           borderTopColor: Colors.deepTealDark,
-          borderTopWidth: 1,
+          borderTopWidth: isLargeScreen ? 0 : 1,
+          height: isLargeScreen ? 60 : 50,
+          paddingBottom: isLargeScreen ? 10 : 5,
+          position: isLargeScreen ? 'absolute' : 'relative',
+          bottom: isLargeScreen ? 20 : 0,
+          left: isLargeScreen ? (width - Math.min(width * 0.9, 500)) / 2 : 0,
+          width: isLargeScreen ? Math.min(width * 0.9, 500) : '100%',
+          borderRadius: isLargeScreen ? 30 : 0,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
         },
         tabBarLabelStyle: {
           fontSize: 11,

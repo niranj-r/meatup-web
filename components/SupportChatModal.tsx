@@ -12,6 +12,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Image,
+    useWindowDimensions,
 } from 'react-native';
 import { X, Send, Phone, MessageCircle, ChevronLeft } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -40,6 +41,8 @@ const INITIAL_OPTIONS = [
 export default function SupportChatModal({ visible, onClose }: SupportChatModalProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const scrollViewRef = useRef<ScrollView>(null);
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
 
     useEffect(() => {
         if (visible) {
@@ -165,74 +168,76 @@ export default function SupportChatModal({ visible, onClose }: SupportChatModalP
     if (!visible) return null;
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-            <SafeAreaView style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                        <ChevronLeft size={28} color={Colors.charcoal} />
-                    </TouchableOpacity>
-                    <View style={styles.headerTitleContainer}>
-                        <Text style={styles.headerTitle}>Support Chat</Text>
-                        <View style={styles.onlineStatus}>
-                            <View style={styles.onlineDot} />
-                            <Text style={styles.onlineText}>Online</Text>
-                        </View>
-                    </View>
-                    <View style={{ width: 28 }} />
-                </View>
-
-                {/* Chat Area */}
-                <ScrollView
-                    ref={scrollViewRef}
-                    style={styles.chatContainer}
-                    contentContainerStyle={styles.chatContent}
-                    onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-                >
-                    {messages.map((msg) => (
-                        <View key={msg.id} style={[
-                            styles.messageWrapper,
-                            msg.sender === 'user' ? styles.userMessageWrapper : styles.botMessageWrapper
-                        ]}>
-                            {msg.sender === 'bot' && (
-                                <View style={styles.botAvatar}>
-                                    <MessageCircle size={16} color={Colors.white} />
-                                </View>
-                            )}
-
-                            <View>
-                                <View style={[
-                                    styles.messageBubble,
-                                    msg.sender === 'user' ? styles.userBubble : styles.botBubble
-                                ]}>
-                                    <Text style={[
-                                        styles.messageText,
-                                        msg.sender === 'user' ? styles.userText : styles.botText
-                                    ]}>
-                                        {msg.text}
-                                    </Text>
-                                </View>
-
-                                {/* Options */}
-                                {msg.type === 'options' && msg.options && (
-                                    <View style={styles.optionsContainer}>
-                                        {msg.options.map((option, index) => (
-                                            <TouchableOpacity
-                                                key={index}
-                                                style={styles.optionButton}
-                                                onPress={() => handleOptionSelect(option)}
-                                                disabled={messages[messages.length - 1].id !== msg.id} // Disable old options
-                                            >
-                                                <Text style={styles.optionText}>{option.label}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                )}
+        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" transparent={isLargeScreen}>
+            <View style={isLargeScreen ? styles.modalOverlay : null}>
+                <SafeAreaView style={[styles.container, isLargeScreen && styles.largeContainer]}>
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                            <ChevronLeft size={28} color={Colors.charcoal} />
+                        </TouchableOpacity>
+                        <View style={styles.headerTitleContainer}>
+                            <Text style={styles.headerTitle}>Support Chat</Text>
+                            <View style={styles.onlineStatus}>
+                                <View style={styles.onlineDot} />
+                                <Text style={styles.onlineText}>Online</Text>
                             </View>
                         </View>
-                    ))}
-                </ScrollView>
-            </SafeAreaView>
+                        <View style={{ width: 28 }} />
+                    </View>
+
+                    {/* Chat Area */}
+                    <ScrollView
+                        ref={scrollViewRef}
+                        style={styles.chatContainer}
+                        contentContainerStyle={styles.chatContent}
+                        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                    >
+                        {messages.map((msg) => (
+                            <View key={msg.id} style={[
+                                styles.messageWrapper,
+                                msg.sender === 'user' ? styles.userMessageWrapper : styles.botMessageWrapper
+                            ]}>
+                                {msg.sender === 'bot' && (
+                                    <View style={styles.botAvatar}>
+                                        <MessageCircle size={16} color={Colors.white} />
+                                    </View>
+                                )}
+
+                                <View>
+                                    <View style={[
+                                        styles.messageBubble,
+                                        msg.sender === 'user' ? styles.userBubble : styles.botBubble
+                                    ]}>
+                                        <Text style={[
+                                            styles.messageText,
+                                            msg.sender === 'user' ? styles.userText : styles.botText
+                                        ]}>
+                                            {msg.text}
+                                        </Text>
+                                    </View>
+
+                                    {/* Options */}
+                                    {msg.type === 'options' && msg.options && (
+                                        <View style={styles.optionsContainer}>
+                                            {msg.options.map((option, index) => (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={styles.optionButton}
+                                                    onPress={() => handleOptionSelect(option)}
+                                                    disabled={messages[messages.length - 1].id !== msg.id} // Disable old options
+                                                >
+                                                    <Text style={styles.optionText}>{option.label}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
+                        ))}
+                    </ScrollView>
+                </SafeAreaView>
+            </View>
         </Modal>
     );
 }
@@ -241,6 +246,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F9F9F9',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    largeContainer: {
+        maxWidth: 600,
+        maxHeight: '80%',
+        width: '90%',
+        borderRadius: 24,
+        overflow: 'hidden',
     },
     header: {
         flexDirection: 'row',

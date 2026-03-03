@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Modal, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, Animated, Dimensions, useWindowDimensions } from 'react-native';
 import { CheckCircle, ArrowRight, ShoppingBag } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import { useRouter } from 'expo-router';
@@ -14,6 +14,8 @@ interface OrderSuccessModalProps {
 const { width } = Dimensions.get('window');
 
 export default function OrderSuccessModal({ visible, orderId, onTrackOrder, onContinueShopping }: OrderSuccessModalProps) {
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
     const scaleValue = useRef(new Animated.Value(0)).current;
     const opacityValue = useRef(new Animated.Value(0)).current;
 
@@ -43,7 +45,11 @@ export default function OrderSuccessModal({ visible, orderId, onTrackOrder, onCo
     return (
         <Modal transparent visible={visible} animationType="none">
             <View style={styles.overlay}>
-                <Animated.View style={[styles.container, { opacity: opacityValue, transform: [{ scale: scaleValue }] }]}>
+                <Animated.View style={[
+                    styles.container,
+                    { opacity: opacityValue, transform: [{ scale: scaleValue }] },
+                    isLargeScreen && styles.largeContainer
+                ]}>
 
                     {/* Icon Circle */}
                     <View style={styles.iconCircle}>
@@ -91,6 +97,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 20,
         elevation: 10,
+    },
+    largeContainer: {
+        maxWidth: 500,
+        width: '90%',
     },
     iconCircle: {
         width: 80,

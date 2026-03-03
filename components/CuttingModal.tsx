@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     TouchableWithoutFeedback,
+    useWindowDimensions,
 } from 'react-native';
 import Colors from '@/constants/colors';
 import { X } from 'lucide-react-native';
@@ -29,6 +30,9 @@ const DEFAULT_CUTTING_TYPES = [
 ];
 
 export default function CuttingModal({ visible, onClose, onSelect, options, variants, title }: CuttingModalProps) {
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
+
     // If variants are provided, use them. Otherwise rely on options or default.
 
     return (
@@ -39,9 +43,9 @@ export default function CuttingModal({ visible, onClose, onSelect, options, vari
             onRequestClose={onClose}
         >
             <TouchableWithoutFeedback onPress={onClose}>
-                <View style={styles.overlay}>
+                <View style={[styles.overlay, isLargeScreen && styles.largeOverlay]}>
                     <TouchableWithoutFeedback>
-                        <View style={styles.modalContent}>
+                        <View style={[styles.modalContent, isLargeScreen && styles.largeModalContent]}>
                             <View style={styles.header}>
                                 <Text style={styles.title}>{title || 'Select Cutting Type'}</Text>
                                 <TouchableOpacity onPress={onClose}>
@@ -96,6 +100,15 @@ const styles = StyleSheet.create({
         padding: 24,
         paddingBottom: 40,
         maxHeight: '80%',
+    },
+    largeOverlay: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    largeModalContent: {
+        width: 500,
+        borderRadius: 24,
+        paddingBottom: 24,
     },
     header: {
         flexDirection: 'row',

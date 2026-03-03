@@ -5,9 +5,9 @@ const Razorpay = require("razorpay");
 
 admin.initializeApp();
 
-// Replace these with your actual Razorpay API keys or use Firebase Environment variables
-const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "";
-const RAZORPAY_KEY_SECRET = process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || "";
+// Ensure these are set in functions/.env or Firebase Config
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "";
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || "";
 
 const razorpay = new Razorpay({
     key_id: RAZORPAY_KEY_ID,
@@ -22,6 +22,8 @@ exports.createRazorpayOrder = onCall({ cors: ["http://localhost:3000", "http://l
             "The function must be called while authenticated."
         );
     }
+
+    logger.info("Received request data:", request.data);
 
     const amount = request.data.amount;
     const currency = request.data.currency || "INR";
