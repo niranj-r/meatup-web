@@ -228,7 +228,10 @@ export const [AppProvider, useApp] = createContextHook(() => {
         delivery_charge: deliveryCharge, // Added field
         wallet_used: walletUsed,
         final_amount: finalAmount,
-        earned_points: Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0)),
+        earned_points: Math.floor(cart.reduce((sum, item) => {
+          if (item.product.unit === 'PC' || item.product.unit === 'pack') return sum;
+          return sum + item.weight * item.quantity;
+        }, 0)),
         address,
         delivery_slot: deliverySlot,
         note,

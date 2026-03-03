@@ -23,6 +23,10 @@ export default function CartScreen() {
 
   const firstOrderDiscount = !user.is_first_order_completed ? cartTotal * 0.1 : 0;
   const finalTotal = Math.max(0, cartTotal - firstOrderDiscount);
+  const earnedPoints = Math.floor(cart.reduce((sum, item) => {
+    if (item.product.unit === 'PC' || item.product.unit === 'pack') return sum;
+    return sum + item.weight * item.quantity;
+  }, 0));
 
   // Custom Header Component
   const renderHeader = () => (
@@ -84,41 +88,49 @@ export default function CartScreen() {
         )}
 
         <View style={styles.cartList}>
-          {cart.map((item, index) => (
-            <View key={`${item.product.id}-${item.weight}-${index}`} style={styles.cartCard}>
-              <Image source={{ uri: item.product.image }} style={styles.itemImage} />
+          {cart.map((item, index) => {
+            let itemPrice = item.product.current_price;
+            if (item.product.variants && item.cuttingType) {
+              const variant = item.product.variants.find(v => v.name === item.cuttingType);
+              if (variant) itemPrice = variant.price;
+            }
 
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
-                <Text style={styles.itemVariant}>
-                  {item.weight}kg {item.cuttingType ? `• ${item.cuttingType}` : ''}
-                </Text>
-                <Text style={styles.itemPrice}>
-                  ₹{(item.product.current_price * item.weight * item.quantity).toFixed(2)}
-                </Text>
-              </View>
+            return (
+              <View key={`${item.product.id}-${item.weight}-${index}`} style={styles.cartCard}>
+                <Image source={{ uri: item.product.image }} style={styles.itemImage} />
 
-              <View style={styles.controls}>
-                <TouchableOpacity
-                  style={styles.controlBtn}
-                  onPress={() => removeFromCart(item.product.id, item.weight, item.cuttingType)}
-                >
-                  {item.quantity === 1 ? (
-                    <Trash2 size={16} color={Colors.priceDown} />
-                  ) : (
-                    <Minus size={16} color={Colors.charcoal} />
-                  )}
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{item.quantity}</Text>
-                <TouchableOpacity
-                  style={styles.controlBtn}
-                  onPress={() => addToCart(item.product.id, 1, item.weight, item.cuttingType!)}
-                >
-                  <Plus size={16} color={Colors.charcoal} />
-                </TouchableOpacity>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
+                  <Text style={styles.itemVariant}>
+                    {item.weight}kg {item.cuttingType ? `• ${item.cuttingType}` : ''}
+                  </Text>
+                  <Text style={styles.itemPrice}>
+                    ₹{(itemPrice * item.weight * item.quantity).toFixed(2)}
+                  </Text>
+                </View>
+
+                <View style={styles.controls}>
+                  <TouchableOpacity
+                    style={styles.controlBtn}
+                    onPress={() => removeFromCart(item.product.id, item.weight, item.cuttingType)}
+                  >
+                    {item.quantity === 1 ? (
+                      <Trash2 size={16} color={Colors.priceDown} />
+                    ) : (
+                      <Minus size={16} color={Colors.charcoal} />
+                    )}
+                  </TouchableOpacity>
+                  <Text style={styles.quantityText}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.controlBtn}
+                    onPress={() => addToCart(item.product.id, 1, item.weight, item.cuttingType!)}
+                  >
+                    <Plus size={16} color={Colors.charcoal} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.summaryCard}>
@@ -143,12 +155,14 @@ export default function CartScreen() {
             <Text style={styles.totalValue}>₹{finalTotal.toFixed(2)}</Text>
           </View>
 
-          <View style={styles.pointsBadge}>
-            <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
-            <Text style={styles.pointsText}>
-              You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0))}</Text> Meat Points
-            </Text>
-          </View>
+          {earnedPoints > 0 && (
+            <View style={styles.pointsBadge}>
+              <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
+              <Text style={styles.pointsText}>
+                You'll earn <Text style={{ fontWeight: 'bold' }}>{earnedPoints}</Text> Meat Points
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={{ height: 100 }} />

@@ -48,16 +48,33 @@ export default function ProductDetailScreen() {
   const effectiveWeight = selectedWeight ?? defaultWeight;
   const availableToday = isProductAvailableToday(product);
 
-  const totalPrice = product.current_price * effectiveWeight * quantity;
-  const earnPoints = Math.floor(effectiveWeight * quantity);
+  const totalPrice = isPcUnit
+    ? product.current_price * quantity
+    : product.current_price * effectiveWeight * quantity;
+  const earnPoints = isPcUnit ? 0 : Math.floor(effectiveWeight * quantity);
 
   const handleAddToCartRequest = () => {
-    setModalVisible(true);
+    if (product.variants && product.variants.length > 0) {
+      setModalVisible(true);
+    } else if (product.cutting_types && product.cutting_types.length > 0) {
+      setModalVisible(true);
+    } else {
+      for (let i = 0; i < quantity; i++) {
+        // If it's a PC unit, we treat the 'weight' field as 1, because price is per unit/pack
+        // Or if effectiveWeight represents multiple packs, we pass that.
+        // But weightOptions in Detail is [15, 30]. So passing 15 as weight = 15x multiplier.
+        // It should pass weight = effectiveWeight / price_quantity.
+        const cartWeight = isPcUnit ? (effectiveWeight / (product.price_quantity || 1)) : effectiveWeight;
+        addToCart(product.id, 1, cartWeight);
+      }
+      router.back();
+    }
   };
 
   const handleCuttingTypeSelect = (cuttingType: string) => {
     for (let i = 0; i < quantity; i++) {
-      addToCart(product.id, 1, effectiveWeight, cuttingType);
+      const cartWeight = isPcUnit ? (effectiveWeight / (product.price_quantity || 1)) : effectiveWeight;
+      addToCart(product.id, 1, cartWeight, cuttingType);
     }
     setModalVisible(false);
     router.back();
@@ -179,17 +196,19 @@ export default function ProductDetailScreen() {
             </View>
           </View>
 
-          <View style={styles.rewardCard}>
-            <View style={styles.rewardIconContainer}>
-              <Image source={require('../../assets/images/cp.png')} style={styles.rewardIcon} resizeMode="contain" />
+          {earnPoints > 0 && (
+            <View style={styles.rewardCard}>
+              <View style={styles.rewardIconContainer}>
+                <Image source={require('../../assets/images/cp.png')} style={styles.rewardIcon} resizeMode="contain" />
+              </View>
+              <View>
+                <Text style={styles.rewardTitle}>Premium Rewards</Text>
+                <Text style={styles.rewardText}>
+                  Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
+                </Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.rewardTitle}>Premium Rewards</Text>
-              <Text style={styles.rewardText}>
-                Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
-              </Text>
-            </View>
-          </View>
+          )}
 
           {/* Spacer for bottom bar */}
           <View style={{ height: 100 }} />
@@ -229,6 +248,9 @@ export default function ProductDetailScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSelect={handleCuttingTypeSelect}
+        options={product.cutting_types}
+        variants={product.variants}
+        title={product.variants && product.variants.length > 0 ? "Select Type" : "Select Cutting Type"}
       />
     </View>
   );
