@@ -24,6 +24,7 @@ import { calculateDistance, calculateDeliveryTime, STORE_LOCATION } from '@/util
 import OrderSuccessModal from '@/components/OrderSuccessModal';
 import RazorpayCheckoutGateway from '@/components/RazorpayCheckoutGateway';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/config/firebaseConfig';
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -221,18 +222,18 @@ export default function CheckoutScreen() {
         console.error(error);
       }
     } else {
-      // Razorpay Online Payment Flow - Secure Cloud Function Call
+      // Razorpay Online Payment Flow - Via Firebase Cloud Function
       try {
-        const functions = getFunctions();
-        const createRazorpayOrder = httpsCallable(functions, 'createRazorpayOrder');
+        // 1. Call Razorpay API via Cloud Function to avoid CORS
+        const functions = getFunctions(app);
+        const createRazorpayOrder = httpsCallable<{ amount: number, currency: string }, { id: string }>(functions, 'createRazorpayOrder');
 
-        // 1. Call Secure Firebase Function
-        const result: any = await createRazorpayOrder({
-          amount: finalTotal, // Function handles paise conversion
+        const response = await createRazorpayOrder({
+          amount: finalTotal,
           currency: 'INR'
         });
 
-        const razorpayOrderId = result.data.id;
+        const razorpayOrderId = response.data.id;
 
         // 2. Open WebView Gateway
         setCurrentRazorpayOrderId(razorpayOrderId);
@@ -454,18 +455,26 @@ export default function CheckoutScreen() {
               <View style={styles.sectionContainer}>
                 <Text style={styles.sectionTitle}>Payment Summary</Text>
                 <View style={styles.card}>
-                  {cart.map((item, index) => (
-                    <View key={`${item.product.id}-${index}`} style={styles.billItemRow}>
-                      <Text style={styles.billItemQty}>{item.quantity}x</Text>
-                      <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                        <Text style={styles.billItemName}>{item.product.name}</Text>
-                        <Text style={styles.billItemMeta}>{item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
+                  {cart.map((item, index) => {
+                    let itemPrice = item.product.current_price;
+                    if (item.product.variants && item.cuttingType) {
+                      const variant = item.product.variants.find(v => v.name === item.cuttingType);
+                      if (variant) itemPrice = variant.price;
+                    }
+
+                    return (
+                      <View key={`${item.product.id}-${index}`} style={styles.billItemRow}>
+                        <Text style={styles.billItemQty}>{item.quantity}x</Text>
+                        <View style={{ flex: 1, paddingHorizontal: 10 }}>
+                          <Text style={styles.billItemName}>{item.product.name}</Text>
+                          <Text style={styles.billItemMeta}>{item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
+                        </View>
+                        <Text style={styles.billItemPrice}>
+                          ₹{(itemPrice * item.quantity * item.weight).toFixed(2)}
+                        </Text>
                       </View>
-                      <Text style={styles.billItemPrice}>
-                        ₹{((item.product.current_price) * item.quantity * item.weight).toFixed(2)}
-                      </Text>
-                    </View>
-                  ))}
+                    );
+                  })}
 
                   <View style={styles.dashedLine} />
 

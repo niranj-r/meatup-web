@@ -355,8 +355,7 @@ function ProductCard({
               <TouchableOpacity
                 key={opt}
                 style={[styles.variantChip, isSelected && styles.variantChipActive]}
-                onPress={() => !product.availability && setSelectedWeight(opt)}
-                disabled={!product.availability}
+                onPress={() => setSelectedWeight(opt)}
               >
                 <Text style={[styles.variantText, isSelected && styles.variantTextActive]}>{label}</Text>
               </TouchableOpacity>
