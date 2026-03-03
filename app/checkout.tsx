@@ -467,7 +467,11 @@ export default function CheckoutScreen() {
                         <Text style={styles.billItemQty}>{item.quantity}x</Text>
                         <View style={{ flex: 1, paddingHorizontal: 10 }}>
                           <Text style={styles.billItemName}>{item.product.name}</Text>
-                          <Text style={styles.billItemMeta}>{item.weight}{item.product.unit} {item.cuttingType ? `• ${item.cuttingType}` : ''}</Text>
+                          <Text style={styles.billItemMeta}>
+                            {item.product.unit === 'PC' || item.product.unit === 'pack'
+                              ? `${item.weight * (item.product.price_quantity || 1)}pc`
+                              : `${item.weight}${item.product.unit}`} {item.cuttingType ? `• ${item.cuttingType}` : ''}
+                          </Text>
                         </View>
                         <Text style={styles.billItemPrice}>
                           ₹{(itemPrice * item.quantity * item.weight).toFixed(2)}
