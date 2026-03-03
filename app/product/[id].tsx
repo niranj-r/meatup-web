@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { TrendingUp, TrendingDown, Minus, Plus, ChevronLeft, ArrowRight } from 'lucide-react-native';
@@ -23,6 +24,9 @@ export default function ProductDetailScreen() {
   const [selectedWeight, setSelectedWeight] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [modalVisible, setModalVisible] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
+  const isLargeScreen = windowWidth >= 768;
+  const contentMaxWidth = 1100;
 
   const product = products.find((p) => p.id === id);
 
@@ -78,126 +82,133 @@ export default function ProductDetailScreen() {
         </TouchableOpacity>
       </SafeAreaView>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} bounces={false}>
-        {/* Helper view to maintain aspect ratio or height */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: product.image }} style={[styles.productImage, !availableToday && { opacity: 0.45 }]} resizeMode="cover" />
-          <View style={styles.imageOverlay} />
-          {!availableToday && (
-            <View style={styles.outOfStockOverlay}>
-              <View style={styles.outOfStockBadge}>
-                <Text style={styles.outOfStockBadgeText}>Out of Stock</Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.contentContainer}>
-          <View style={styles.dragHandle} />
-
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Text style={styles.productName}>{product.name}</Text>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{product.category}</Text>
-              </View>
-            </View>
-
-            <View style={styles.priceRow}>
-              <View style={styles.priceWrapper}>
-                <Text style={styles.currency}>₹</Text>
-                <Text style={styles.currentPrice}>{product.current_price}</Text>
-                <Text style={styles.unit}>/kg</Text>
-              </View>
-
-              {product.price_direction !== 'neutral' && (
-                <View style={[styles.priceChange, { backgroundColor: priceColor }]}>
-                  <Icon size={14} color={Colors.white} />
-                  <Text style={styles.priceChangeText}>
-                    {product.price_direction === 'up' ? '+' : ''}
-                    {product.price_change_percentage}%
-                  </Text>
+      <ScrollView style={styles.scrollView} contentContainerStyle={isLargeScreen && styles.scrollContent} showsVerticalScrollIndicator={false} bounces={false}>
+        <View style={isLargeScreen ? styles.rowLayout : null}>
+          {/* Left Column: Image */}
+          <View style={isLargeScreen ? styles.leftColumn : null}>
+            <View style={[styles.imageContainer, isLargeScreen && styles.largeImageContainer]}>
+              <Image source={{ uri: product.image }} style={[styles.productImage, !availableToday && { opacity: 0.45 }]} resizeMode="cover" />
+              <View style={styles.imageOverlay} />
+              {!availableToday && (
+                <View style={styles.outOfStockOverlay}>
+                  <View style={styles.outOfStockBadge}>
+                    <Text style={styles.outOfStockBadgeText}>Out of Stock</Text>
+                  </View>
                 </View>
               )}
             </View>
           </View>
 
-          <View style={styles.divider} />
+          {/* Right Column: Details */}
+          <View style={isLargeScreen ? styles.rightColumn : null}>
+            <View style={[styles.contentContainer, isLargeScreen && styles.largeContentContainer]}>
+              {/* Drag handle only for mobile overlap look */}
+              {!isLargeScreen && <View style={styles.dragHandle} />}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{product.description}</Text>
-          </View>
+              <View style={styles.header}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{product.category}</Text>
+                  </View>
+                </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select {isPcUnit ? 'Quantity' : 'Weight'}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weightOptions}>
-              {weightOptions.map((weight) => (
-                <TouchableOpacity
-                  key={weight}
-                  style={[
-                    styles.weightOption,
-                    effectiveWeight === weight && styles.weightOptionActive,
-                    !availableToday && styles.weightOptionDisabled,
-                  ]}
-                  onPress={() => setSelectedWeight(weight)}
-                  disabled={!availableToday}
-                >
-                  <Text
-                    style={[
-                      styles.weightOptionText,
-                      effectiveWeight === weight && styles.weightOptionTextActive,
-                    ]}
-                  >
-                    {weight} {isPcUnit ? 'pc' : 'kg'}
-                  </Text>
-                  {effectiveWeight === weight && <View style={styles.activeDot} />}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+                <View style={styles.priceRow}>
+                  <View style={styles.priceWrapper}>
+                    <Text style={styles.currency}>₹</Text>
+                    <Text style={styles.currentPrice}>{product.current_price}</Text>
+                    <Text style={styles.unit}>/kg</Text>
+                  </View>
 
-          <View style={styles.section}>
-            <View style={styles.quantityRow}>
-              <Text style={styles.sectionTitle}>Quantity</Text>
-              <View style={styles.quantitySelector}>
-                <TouchableOpacity
-                  style={[styles.quantityButton, quantity === 1 && styles.quantityButtonDisabled]}
-                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity === 1}
-                >
-                  <Minus size={18} color={quantity === 1 ? '#AAA' : Colors.white} />
-                </TouchableOpacity>
-                <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity
-                  style={styles.quantityButton}
-                  onPress={() => setQuantity(quantity + 1)}
-                >
-                  <Plus size={18} color={Colors.white} />
-                </TouchableOpacity>
+                  {product.price_direction !== 'neutral' && (
+                    <View style={[styles.priceChange, { backgroundColor: priceColor }]}>
+                      <Icon size={14} color={Colors.white} />
+                      <Text style={styles.priceChangeText}>
+                        {product.price_direction === 'up' ? '+' : ''}
+                        {product.price_change_percentage}%
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.description}>{product.description}</Text>
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Select {isPcUnit ? 'Quantity' : 'Weight'}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weightOptions}>
+                  {weightOptions.map((weight) => (
+                    <TouchableOpacity
+                      key={weight}
+                      style={[
+                        styles.weightOption,
+                        effectiveWeight === weight && styles.weightOptionActive,
+                        !availableToday && styles.weightOptionDisabled,
+                      ]}
+                      onPress={() => setSelectedWeight(weight)}
+                      disabled={!availableToday}
+                    >
+                      <Text
+                        style={[
+                          styles.weightOptionText,
+                          effectiveWeight === weight && styles.weightOptionTextActive,
+                        ]}
+                      >
+                        {weight} {isPcUnit ? 'pc' : 'kg'}
+                      </Text>
+                      {effectiveWeight === weight && <View style={styles.activeDot} />}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.section}>
+                <View style={styles.quantityRow}>
+                  <Text style={styles.sectionTitle}>Quantity</Text>
+                  <View style={styles.quantitySelector}>
+                    <TouchableOpacity
+                      style={[styles.quantityButton, quantity === 1 && styles.quantityButtonDisabled]}
+                      onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity === 1}
+                    >
+                      <Minus size={18} color={quantity === 1 ? '#AAA' : Colors.white} />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{quantity}</Text>
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={() => setQuantity(quantity + 1)}
+                    >
+                      <Plus size={18} color={Colors.white} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.rewardCard}>
+                <View style={styles.rewardIconContainer}>
+                  <Image source={require('../../assets/images/cp.png')} style={styles.rewardIcon} resizeMode="contain" />
+                </View>
+                <View>
+                  <Text style={styles.rewardTitle}>Premium Rewards</Text>
+                  <Text style={styles.rewardText}>
+                    Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ height: 100 }} />
             </View>
           </View>
-
-          <View style={styles.rewardCard}>
-            <View style={styles.rewardIconContainer}>
-              <Image source={require('../../assets/images/cp.png')} style={styles.rewardIcon} resizeMode="contain" />
-            </View>
-            <View>
-              <Text style={styles.rewardTitle}>Premium Rewards</Text>
-              <Text style={styles.rewardText}>
-                Earn <Text style={{ fontWeight: 'bold', color: Colors.white }}>{earnPoints} Meat Points</Text>
-              </Text>
-            </View>
-          </View>
-
-          {/* Spacer for bottom bar */}
-          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.footerContent}>
+        <View style={[styles.footerContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
           {availableToday ? (
             <>
               <View>
@@ -259,12 +270,34 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: Colors.deepTeal,
+    backgroundColor: Colors.cream,
+  },
+  scrollContent: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 1100,
+    paddingTop: 40,
+  },
+  rowLayout: {
+    flexDirection: 'row',
+    gap: 40,
+    paddingHorizontal: 24,
+  },
+  leftColumn: {
+    flex: 1,
+  },
+  rightColumn: {
+    flex: 1,
   },
   imageContainer: {
-    height: 400,
+    height: 480,
     width: '100%',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  largeImageContainer: {
+    borderRadius: 24,
+    height: 600,
   },
   productImage: {
     width: '100%',
@@ -337,6 +370,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
     minHeight: 500,
+  },
+  largeContentContainer: {
+    marginTop: 0,
+    paddingHorizontal: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    backgroundColor: 'transparent',
   },
   dragHandle: {
     width: 40,

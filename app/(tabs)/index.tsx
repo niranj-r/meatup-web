@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,6 +25,13 @@ import { getNextAvailableDay, isProductAvailableToday } from '@/utils/getNextAva
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const { width: windowWidth } = useWindowDimensions();
+  const isTablet = windowWidth >= 768;
+  const isDesktop = windowWidth >= 1024;
+  const isUltraWide = windowWidth >= 1440;
+  const numColumns = isUltraWide ? 4 : isDesktop ? 3 : isTablet ? 2 : 1;
+  const contentMaxWidth = 1400;
+
   const router = useRouter();
   const { products, addToCart, cartItemCount, cart, removeFromCart, cartTotal } = useApp();
   const insets = useSafeAreaInsets();
@@ -129,36 +137,38 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* 1. Custom Header with Search */}
       <View style={[styles.headerBg, { paddingTop: insets.top }]}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.logo}>Meat Up</Text>
-          <TouchableOpacity
-            style={styles.cartBtn}
-            onPress={() => router.push('/cart')}
-          >
-            <ShoppingCart size={24} color={Colors.cream} />
-            {cartItemCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{cartItemCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        <View style={{ maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }}>
+          <View style={styles.headerTopRow}>
+            <Text style={styles.logo}>Meat Up</Text>
+            <TouchableOpacity
+              style={styles.cartBtn}
+              onPress={() => router.push('/cart')}
+            >
+              <ShoppingCart size={24} color={Colors.cream} />
+              {cartItemCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{cartItemCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.searchBarContainer}>
-          <Search size={18} color={Colors.deepTeal.substring(0, 7) + '90'} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for fresh cuts..."
-            placeholderTextColor={Colors.deepTeal.substring(0, 7) + '70'}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+          <View style={styles.searchBarContainer}>
+            <Search size={18} color={Colors.deepTeal.substring(0, 7) + '90'} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for fresh cuts..."
+              placeholderTextColor={Colors.deepTeal.substring(0, 7) + '70'}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
         </View>
       </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
         showsVerticalScrollIndicator={false}
       >
 
@@ -180,11 +190,12 @@ export default function HomeScreen() {
         {/* 3. Products Grid */}
         <View style={styles.productsSection}>
           <Text style={styles.sectionTitle}>Fresh Products</Text>
-          <View style={styles.grid}>
+          <View style={[styles.grid, numColumns > 1 && styles.rowGrid]}>
             {filteredProducts.map(product => (
               <ProductCard
                 key={product.id}
                 product={product}
+                numColumns={numColumns}
                 onPress={() => router.push(`/product/${product.id}`)}
                 onAddToCart={(w) => handleAddToCartRequest(product, w)}
                 onRemoveFromCart={(w) => handleRemoveFromCart(product.id, w)}
@@ -265,13 +276,22 @@ function ProductCard({
   onAddToCart,
   onRemoveFromCart,
   quantityInCart,
+  numColumns = 1,
 }: {
   product: Product;
   onPress: () => void;
   onAddToCart: (weight: number) => void;
   onRemoveFromCart: (weight: number) => void;
   quantityInCart: (weight: number) => number;
+  numColumns?: number;
 }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const contentMaxWidth = 1400;
+  const gap = 20;
+  const horizontalPadding = 20;
+  const availableWidth = Math.min(windowWidth, contentMaxWidth) - (horizontalPadding * 2);
+  const cardWidth = numColumns > 1 ? (availableWidth - (gap * (numColumns - 1))) / numColumns : '100%';
+
   const getDefaultWeight = () => {
     if (product.unit === 'kg') return 1;
     if (product.unit === 'g') return 250;
@@ -292,7 +312,15 @@ function ProductCard({
   const options = getOptions();
 
   return (
-    <TouchableOpacity style={[styles.card, !isProductAvailableToday(product) && styles.cardOutOfStock]} onPress={onPress} activeOpacity={0.9}>
+    <TouchableOpacity
+      style={[
+        styles.card,
+        !isProductAvailableToday(product) && styles.cardOutOfStock,
+        { width: cardWidth }
+      ]}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
       <View>
         <Image source={{ uri: product.image }} style={[styles.cardImage, !isProductAvailableToday(product) && { opacity: 0.45 }]} resizeMode="cover" />
         {!isProductAvailableToday(product) && (
@@ -451,6 +479,7 @@ const styles = StyleSheet.create({
 
   // Ticker
   tickerSection: {
+    marginTop: 20,
     marginBottom: 24,
   },
   tickerHeader: {
@@ -517,6 +546,10 @@ const styles = StyleSheet.create({
   },
   grid: {
     gap: 20,
+  },
+  rowGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
 
   // Product Card
@@ -692,6 +725,9 @@ const styles = StyleSheet.create({
     bottom: 24,
     left: 20,
     right: 20,
+    maxWidth: 1400,
+    alignSelf: 'center',
+    width: '100%',
   },
   floatCartBtn: {
     backgroundColor: Colors.orange,

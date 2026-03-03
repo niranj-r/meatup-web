@@ -9,7 +9,8 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    Image
+    Image,
+    useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowRight } from 'lucide-react-native';
@@ -17,6 +18,9 @@ import Colors from '@/constants/colors';
 import { useAuth } from '@/contexts/AuthContext';
 import StatusBanner from '@/components/StatusBanner';
 export default function LoginScreen() {
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
+
     const router = useRouter();
     const { signIn } = useAuth();
     const [email, setEmail] = useState('');
@@ -70,7 +74,7 @@ export default function LoginScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
-                <View style={styles.content}>
+                <View style={[styles.content, isLargeScreen && { maxWidth: 450, alignSelf: 'center', width: '100%' }]}>
                     <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
                     <Text style={styles.tagline}>Fresh Meat, Delivered.</Text>
 

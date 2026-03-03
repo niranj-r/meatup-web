@@ -10,7 +10,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
-    Image
+    Image,
+    useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User, ArrowRight, Phone, MapPin } from 'lucide-react-native';
@@ -19,6 +20,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import StatusBanner from '@/components/StatusBanner';
 
 export default function SignupScreen() {
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
+
     const router = useRouter();
     const { signUp } = useAuth();
     const [name, setName] = useState('');
@@ -91,7 +95,13 @@ export default function SignupScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        isLargeScreen && { maxWidth: 450, alignSelf: 'center', width: '100%' }
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                >
                     <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
                     <Text style={styles.tagline}>Create Your Account</Text>
 

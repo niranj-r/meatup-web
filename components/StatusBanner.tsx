@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View, Animated, TouchableOpacity, SafeAreaView, Platform, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, Animated, TouchableOpacity, SafeAreaView, Platform, StatusBar, useWindowDimensions } from 'react-native';
 import { CheckCircle, XCircle, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
@@ -16,6 +16,8 @@ interface StatusBannerProps {
 export default function StatusBanner({ visible, type, message, onClose, duration = 3000 }: StatusBannerProps) {
     const translateY = useRef(new Animated.Value(-100)).current;
     const [isVisible, setIsVisible] = useState(visible);
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
 
     useEffect(() => {
         if (visible) {
@@ -56,8 +58,12 @@ export default function StatusBanner({ visible, type, message, onClose, duration
     const Icon = isSuccess ? CheckCircle : XCircle;
 
     return (
-        <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
-            <SafeAreaView style={{ backgroundColor }}>
+        <Animated.View style={[
+            styles.container,
+            { transform: [{ translateY }] },
+            isLargeScreen && styles.largeContainer
+        ]}>
+            <SafeAreaView style={[{ backgroundColor }, isLargeScreen && styles.largeSafeArea]}>
                 <View style={[styles.content, { backgroundColor }]}>
                     <Icon size={24} color={Colors.deepTeal} />
                     <Text style={styles.message} numberOfLines={2}>
@@ -84,6 +90,16 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 10,
+    },
+    largeContainer: {
+        alignItems: 'center',
+        paddingTop: 20,
+    },
+    largeSafeArea: {
+        borderRadius: 16,
+        overflow: 'hidden',
+        maxWidth: 600,
+        width: '90%',
     },
     content: {
         flexDirection: 'row',

@@ -8,6 +8,7 @@ import {
     Image,
     Linking,
     Alert,
+    useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,6 +60,10 @@ const ALL_STATUSES: OrderStatus[] = [
 
 export default function OrderDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
+    const { width: windowWidth } = useWindowDimensions();
+    const isDesktop = windowWidth >= 1024;
+    const contentMaxWidth = 1100;
+
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { orders } = useApp();
@@ -107,303 +112,310 @@ export default function OrderDetailScreen() {
 
             {/* Header */}
             <View style={[styles.header, { paddingTop: insets.top }]}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-                    <ChevronLeft size={26} color={Colors.cream} />
-                </TouchableOpacity>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.headerTitle}>
-                        {order.display_id || `ORDER #${order.id.slice(-6).toUpperCase()}`}
-                    </Text>
-                    <Text style={styles.headerSub}>
-                        {new Date(order.created_at).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'long', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit',
-                        })}
-                    </Text>
-                </View>
-                <View style={[styles.statusPill, { backgroundColor: config.bgColor }]}>
-                    <StatusIcon size={12} color={config.color} />
-                    <Text style={[styles.statusPillText, { color: config.color }]}>{config.label}</Text>
+                <View style={[styles.headerContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+                        <ChevronLeft size={26} color={Colors.cream} />
+                    </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.headerTitle}>
+                            {order.display_id || `ORDER #${order.id.slice(-6).toUpperCase()}`}
+                        </Text>
+                        <Text style={styles.headerSub}>
+                            {new Date(order.created_at).toLocaleDateString('en-IN', {
+                                day: 'numeric', month: 'long', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit',
+                            })}
+                        </Text>
+                    </View>
+                    <View style={[styles.statusPill, { backgroundColor: config.bgColor }]}>
+                        <StatusIcon size={12} color={config.color} />
+                        <Text style={[styles.statusPillText, { color: config.color }]}>{config.label}</Text>
+                    </View>
                 </View>
             </View>
 
             <ScrollView
                 style={styles.scroll}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[styles.scrollContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
                 showsVerticalScrollIndicator={false}
             >
+                <View style={isDesktop ? styles.rowLayout : null}>
+                    <View style={isDesktop ? styles.leftColumn : null}>
+                        {/* ── Order Progress (horizontal stepper) ── */}
+                        {order.status !== 'cancelled' && (
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Order Progress</Text>
+                                <View style={styles.stepperCard}>
+                                    {/* Connector bar behind dots */}
+                                    <View style={styles.stepperTrack} />
 
-                {/* ── Order Progress (horizontal stepper) ── */}
-                {order.status !== 'cancelled' && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Order Progress</Text>
-                        <View style={styles.stepperCard}>
-                            {/* Connector bar behind dots */}
-                            <View style={styles.stepperTrack} />
+                                    <View style={styles.stepperRow}>
+                                        {TIMELINE_STEPS.map((step, index) => {
+                                            const stepIndex = ALL_STATUSES.indexOf(step.key);
+                                            const isDone = currentStatusIndex > stepIndex;
+                                            const isActive = currentStatusIndex === stepIndex;
+                                            const StepIcon = step.icon;
 
-                            <View style={styles.stepperRow}>
-                                {TIMELINE_STEPS.map((step, index) => {
-                                    const stepIndex = ALL_STATUSES.indexOf(step.key);
-                                    const isDone = currentStatusIndex > stepIndex;
-                                    const isActive = currentStatusIndex === stepIndex;
-                                    const StepIcon = step.icon;
+                                            return (
+                                                <View key={step.key} style={styles.stepItem}>
+                                                    {/* Filled connector left side */}
+                                                    {index > 0 && (
+                                                        <View style={[
+                                                            styles.stepConnectorLeft,
+                                                            (isDone || isActive) && styles.stepConnectorFilled,
+                                                        ]} />
+                                                    )}
+                                                    {/* Filled connector right side */}
+                                                    {index < TIMELINE_STEPS.length - 1 && (
+                                                        <View style={[
+                                                            styles.stepConnectorRight,
+                                                            isDone && styles.stepConnectorFilled,
+                                                        ]} />
+                                                    )}
 
-                                    return (
-                                        <View key={step.key} style={styles.stepItem}>
-                                            {/* Filled connector left side */}
-                                            {index > 0 && (
-                                                <View style={[
-                                                    styles.stepConnectorLeft,
-                                                    (isDone || isActive) && styles.stepConnectorFilled,
-                                                ]} />
-                                            )}
-                                            {/* Filled connector right side */}
-                                            {index < TIMELINE_STEPS.length - 1 && (
-                                                <View style={[
-                                                    styles.stepConnectorRight,
-                                                    isDone && styles.stepConnectorFilled,
-                                                ]} />
-                                            )}
+                                                    {/* Dot */}
+                                                    <View style={[
+                                                        styles.stepDot,
+                                                        isDone && styles.stepDotDone,
+                                                        isActive && styles.stepDotActive,
+                                                    ]}>
+                                                        {isDone
+                                                            ? <CheckCircle size={14} color={Colors.white} />
+                                                            : <StepIcon size={14} color={isActive ? Colors.white : '#CCC'} />
+                                                        }
+                                                    </View>
 
-                                            {/* Dot */}
-                                            <View style={[
-                                                styles.stepDot,
-                                                isDone && styles.stepDotDone,
-                                                isActive && styles.stepDotActive,
-                                            ]}>
-                                                {isDone
-                                                    ? <CheckCircle size={14} color={Colors.white} />
-                                                    : <StepIcon size={14} color={isActive ? Colors.white : '#CCC'} />
-                                                }
-                                            </View>
+                                                    {/* Label */}
+                                                    <Text style={[
+                                                        styles.stepLabel,
+                                                        isDone && styles.stepLabelDone,
+                                                        isActive && styles.stepLabelActive,
+                                                    ]} numberOfLines={1}>
+                                                        {step.shortLabel}
+                                                    </Text>
 
-                                            {/* Label */}
-                                            <Text style={[
-                                                styles.stepLabel,
-                                                isDone && styles.stepLabelDone,
-                                                isActive && styles.stepLabelActive,
-                                            ]} numberOfLines={1}>
-                                                {step.shortLabel}
-                                            </Text>
-
-                                            {isActive && (
-                                                <View style={styles.activePulse} />
-                                            )}
-                                        </View>
-                                    );
-                                })}
-                            </View>
-
-                            {/* Current status description */}
-                            <View style={styles.stepperStatus}>
-                                <View style={[styles.stepperStatusDot, { backgroundColor: config.color }]} />
-                                <Text style={[styles.stepperStatusText, { color: config.color }]}>
-                                    {config.label}
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
-                )}
-
-                {/* ── Cancelled Banner ── */}
-                {order.status === 'cancelled' && (
-                    <View style={styles.cancelledBanner}>
-                        <Box size={20} color={Colors.priceDown} />
-                        <Text style={styles.cancelledText}>This order has been cancelled.</Text>
-                    </View>
-                )}
-
-                {/* ── Items Ordered ── */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Items Ordered</Text>
-                    <View style={styles.card}>
-                        {order.items.map((item, index) => (
-                            <View key={index}>
-                                <View style={styles.itemRow}>
-                                    <View style={styles.itemQtyBadge}>
-                                        <Text style={styles.itemQtyText}>{item.quantity}x</Text>
+                                                    {isActive && (
+                                                        <View style={styles.activePulse} />
+                                                    )}
+                                                </View>
+                                            );
+                                        })}
                                     </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.itemName}>{item.name}</Text>
-                                        <Text style={styles.itemMeta}>
-                                            {item.weight}kg{item.cuttingType ? ` • ${item.cuttingType}` : ''}
+
+                                    {/* Current status description */}
+                                    <View style={styles.stepperStatus}>
+                                        <View style={[styles.stepperStatusDot, { backgroundColor: config.color }]} />
+                                        <Text style={[styles.stepperStatusText, { color: config.color }]}>
+                                            {config.label}
                                         </Text>
                                     </View>
-                                    <Text style={styles.itemPrice}>
-                                        ₹{(item.price * item.weight * item.quantity).toFixed(2)}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* ── Cancelled Banner ── */}
+                        {order.status === 'cancelled' && (
+                            <View style={styles.cancelledBanner}>
+                                <Box size={20} color={Colors.priceDown} />
+                                <Text style={styles.cancelledText}>This order has been cancelled.</Text>
+                            </View>
+                        )}
+
+                        {/* ── Items Ordered ── */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Items Ordered</Text>
+                            <View style={styles.card}>
+                                {order.items.map((item, index) => (
+                                    <View key={index}>
+                                        <View style={styles.itemRow}>
+                                            <View style={styles.itemQtyBadge}>
+                                                <Text style={styles.itemQtyText}>{item.quantity}x</Text>
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.itemName}>{item.name}</Text>
+                                                <Text style={styles.itemMeta}>
+                                                    {item.weight}kg{item.cuttingType ? ` • ${item.cuttingType}` : ''}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.itemPrice}>
+                                                ₹{(item.price * item.weight * item.quantity).toFixed(2)}
+                                            </Text>
+                                        </View>
+                                        {index < order.items.length - 1 && <View style={styles.itemDivider} />}
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* ── Delivery Details ── */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Delivery Details</Text>
+                            <View style={styles.card}>
+                                <View style={styles.infoRow}>
+                                    <View style={styles.infoIcon}><MapPin size={16} color={Colors.deepTeal} /></View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Delivery Address</Text>
+                                        <Text style={styles.infoValue}>{order.address}</Text>
+                                    </View>
+                                </View>
+
+                                {order.delivery_slot && (
+                                    <>
+                                        <View style={styles.rowDivider} />
+                                        <View style={styles.infoRow}>
+                                            <View style={styles.infoIcon}><Clock size={16} color={Colors.deepTeal} /></View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.infoLabel}>Delivery Slot</Text>
+                                                <Text style={styles.infoValue}>{order.delivery_slot}</Text>
+                                            </View>
+                                        </View>
+                                    </>
+                                )}
+
+                                {order.note && (
+                                    <>
+                                        <View style={styles.rowDivider} />
+                                        <View style={styles.infoRow}>
+                                            <View style={styles.infoIcon}><FileText size={16} color={Colors.deepTeal} /></View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.infoLabel}>Order Note</Text>
+                                                <Text style={styles.infoValue}>{order.note}</Text>
+                                            </View>
+                                        </View>
+                                    </>
+                                )}
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={isDesktop ? styles.rightColumn : null}>
+                        {/* ── Payment Summary ── */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Payment Summary</Text>
+                            <View style={styles.card}>
+                                {/* Payment method row */}
+                                <View style={styles.infoRow}>
+                                    <View style={styles.infoIcon}>
+                                        {hasPaymentId
+                                            ? <CreditCard size={16} color={Colors.deepTeal} />
+                                            : <Banknote size={16} color={Colors.deepTeal} />
+                                        }
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Payment Method</Text>
+                                        <Text style={styles.infoValue}>
+                                            {hasPaymentId ? 'Online Payment (UPI)' : 'Cash on Delivery'}
+                                        </Text>
+                                    </View>
+                                    <View style={[styles.paidBadge, { backgroundColor: hasPaymentId ? '#E6F5EA' : '#FFF4E6' }]}>
+                                        <Text style={[styles.paidBadgeText, { color: hasPaymentId ? Colors.priceUp : Colors.orange }]}>
+                                            {hasPaymentId ? 'Paid' : 'COD'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.rowDivider} />
+
+                                {/* Bill rows */}
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billLabel}>Subtotal</Text>
+                                    <Text style={styles.billValue}>₹{order.total_amount.toFixed(2)}</Text>
+                                </View>
+
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billLabel}>Delivery Charge</Text>
+                                    <Text style={deliveryCharge === 0 ? styles.billValueFree : styles.billValue}>
+                                        {deliveryCharge === 0 ? 'Free' : `+₹${deliveryCharge.toFixed(2)}`}
                                     </Text>
                                 </View>
-                                {index < order.items.length - 1 && <View style={styles.itemDivider} />}
-                            </View>
-                        ))}
-                    </View>
-                </View>
 
-                {/* ── Delivery Details ── */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Delivery Details</Text>
-                    <View style={styles.card}>
-                        <View style={styles.infoRow}>
-                            <View style={styles.infoIcon}><MapPin size={16} color={Colors.deepTeal} /></View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.infoLabel}>Delivery Address</Text>
-                                <Text style={styles.infoValue}>{order.address}</Text>
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billLabel}>Tax</Text>
+                                    <Text style={taxAmount === 0 ? styles.billValueFree : styles.billValue}>
+                                        {taxAmount === 0 ? '₹0.00' : `+₹${taxAmount.toFixed(2)}`}
+                                    </Text>
+                                </View>
+
+                                {order.discount > 0 && (
+                                    <View style={styles.billRow}>
+                                        <Text style={[styles.billLabel, { color: Colors.priceUp }]}>Discount</Text>
+                                        <Text style={[styles.billValue, { color: Colors.priceUp }]}>
+                                            -₹{order.discount.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {order.wallet_used > 0 && (
+                                    <View style={styles.billRow}>
+                                        <Text style={[styles.billLabel, { color: Colors.orange }]}>Meat Points Redeemed</Text>
+                                        <Text style={[styles.billValue, { color: Colors.orange }]}>
+                                            -₹{order.wallet_used.toFixed(2)}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                <View style={styles.totalDivider} />
+
+                                <View style={styles.billRow}>
+                                    <Text style={styles.totalLabel}>Total Paid</Text>
+                                    <Text style={styles.totalValue}>₹{order.final_amount.toFixed(2)}</Text>
+                                </View>
+
+                                {/* Points earned */}
+                                {order.status === 'delivered' && order.earned_points > 0 && (
+                                    <View style={styles.earnedPointsRow}>
+                                        <Image
+                                            source={require('../../assets/images/cp-profile.png')}
+                                            style={{ width: 18, height: 18 }}
+                                            resizeMode="contain"
+                                        />
+                                        <Text style={styles.earnedPointsText}>
+                                            +{order.earned_points} Meat Points earned on this order
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
 
-                        {order.delivery_slot && (
-                            <>
-                                <View style={styles.rowDivider} />
-                                <View style={styles.infoRow}>
-                                    <View style={styles.infoIcon}><Clock size={16} color={Colors.deepTeal} /></View>
+                        {/* ── Need Help ── */}
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Need Help?</Text>
+                            <View style={styles.card}>
+                                <View style={styles.helpHeader}>
+                                    <View style={styles.helpIconBg}>
+                                        <Headset size={22} color={Colors.deepTeal} />
+                                    </View>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.infoLabel}>Delivery Slot</Text>
-                                        <Text style={styles.infoValue}>{order.delivery_slot}</Text>
+                                        <Text style={styles.helpTitle}>Contact Support</Text>
+                                        <Text style={styles.helpSub}>
+                                            We're available to assist you with your order.
+                                        </Text>
                                     </View>
                                 </View>
-                            </>
-                        )}
 
-                        {order.note && (
-                            <>
                                 <View style={styles.rowDivider} />
-                                <View style={styles.infoRow}>
-                                    <View style={styles.infoIcon}><FileText size={16} color={Colors.deepTeal} /></View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.infoLabel}>Order Note</Text>
-                                        <Text style={styles.infoValue}>{order.note}</Text>
-                                    </View>
+
+                                <View style={styles.helpBtns}>
+                                    <TouchableOpacity style={styles.helpBtn} onPress={handleCallSupport}>
+                                        <Phone size={18} color={Colors.deepTeal} />
+                                        <Text style={styles.helpBtnText}>Call</Text>
+                                    </TouchableOpacity>
+
+                                    <View style={styles.helpBtnDivider} />
+
+                                    <TouchableOpacity style={styles.helpBtn} onPress={handleWhatsApp}>
+                                        <MessageCircle size={18} color={Colors.priceUp} />
+                                        <Text style={[styles.helpBtnText, { color: Colors.priceUp }]}>WhatsApp</Text>
+                                    </TouchableOpacity>
+
+                                    <View style={styles.helpBtnDivider} />
+
+                                    <TouchableOpacity style={styles.helpBtn} onPress={() => setChatVisible(true)}>
+                                        <Headset size={18} color={Colors.orange} />
+                                        <Text style={[styles.helpBtnText, { color: Colors.orange }]}>Chat</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            </>
-                        )}
-                    </View>
-                </View>
-
-                {/* ── Payment Summary ── */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Payment Summary</Text>
-                    <View style={styles.card}>
-                        {/* Payment method row */}
-                        <View style={styles.infoRow}>
-                            <View style={styles.infoIcon}>
-                                {hasPaymentId
-                                    ? <CreditCard size={16} color={Colors.deepTeal} />
-                                    : <Banknote size={16} color={Colors.deepTeal} />
-                                }
                             </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.infoLabel}>Payment Method</Text>
-                                <Text style={styles.infoValue}>
-                                    {hasPaymentId ? 'Online Payment (UPI)' : 'Cash on Delivery'}
-                                </Text>
-                            </View>
-                            <View style={[styles.paidBadge, { backgroundColor: hasPaymentId ? '#E6F5EA' : '#FFF4E6' }]}>
-                                <Text style={[styles.paidBadgeText, { color: hasPaymentId ? Colors.priceUp : Colors.orange }]}>
-                                    {hasPaymentId ? 'Paid' : 'COD'}
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.rowDivider} />
-
-                        {/* Bill rows */}
-                        <View style={styles.billRow}>
-                            <Text style={styles.billLabel}>Subtotal</Text>
-                            <Text style={styles.billValue}>₹{order.total_amount.toFixed(2)}</Text>
-                        </View>
-
-                        <View style={styles.billRow}>
-                            <Text style={styles.billLabel}>Delivery Charge</Text>
-                            <Text style={deliveryCharge === 0 ? styles.billValueFree : styles.billValue}>
-                                {deliveryCharge === 0 ? 'Free' : `+₹${deliveryCharge.toFixed(2)}`}
-                            </Text>
-                        </View>
-
-                        <View style={styles.billRow}>
-                            <Text style={styles.billLabel}>Tax</Text>
-                            <Text style={taxAmount === 0 ? styles.billValueFree : styles.billValue}>
-                                {taxAmount === 0 ? '₹0.00' : `+₹${taxAmount.toFixed(2)}`}
-                            </Text>
-                        </View>
-
-                        {order.discount > 0 && (
-                            <View style={styles.billRow}>
-                                <Text style={[styles.billLabel, { color: Colors.priceUp }]}>Discount</Text>
-                                <Text style={[styles.billValue, { color: Colors.priceUp }]}>
-                                    -₹{order.discount.toFixed(2)}
-                                </Text>
-                            </View>
-                        )}
-
-                        {order.wallet_used > 0 && (
-                            <View style={styles.billRow}>
-                                <Text style={[styles.billLabel, { color: Colors.orange }]}>Meat Points Redeemed</Text>
-                                <Text style={[styles.billValue, { color: Colors.orange }]}>
-                                    -₹{order.wallet_used.toFixed(2)}
-                                </Text>
-                            </View>
-                        )}
-
-                        <View style={styles.totalDivider} />
-
-                        <View style={styles.billRow}>
-                            <Text style={styles.totalLabel}>Total Paid</Text>
-                            <Text style={styles.totalValue}>₹{order.final_amount.toFixed(2)}</Text>
-                        </View>
-
-                        {/* Points earned */}
-                        {order.status === 'delivered' && order.earned_points > 0 && (
-                            <View style={styles.earnedPointsRow}>
-                                <Image
-                                    source={require('../../assets/images/cp-profile.png')}
-                                    style={{ width: 18, height: 18 }}
-                                    resizeMode="contain"
-                                />
-                                <Text style={styles.earnedPointsText}>
-                                    +{order.earned_points} Meat Points earned on this order
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-
-                {/* ── Need Help ── */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Need Help?</Text>
-                    <View style={styles.card}>
-                        <View style={styles.helpHeader}>
-                            <View style={styles.helpIconBg}>
-                                <Headset size={22} color={Colors.deepTeal} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.helpTitle}>Contact Support</Text>
-                                <Text style={styles.helpSub}>
-                                    We're available to assist you with your order.
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.rowDivider} />
-
-                        <View style={styles.helpBtns}>
-                            <TouchableOpacity style={styles.helpBtn} onPress={handleCallSupport}>
-                                <Phone size={18} color={Colors.deepTeal} />
-                                <Text style={styles.helpBtnText}>Call</Text>
-                            </TouchableOpacity>
-
-                            <View style={styles.helpBtnDivider} />
-
-                            <TouchableOpacity style={styles.helpBtn} onPress={handleWhatsApp}>
-                                <MessageCircle size={18} color={Colors.priceUp} />
-                                <Text style={[styles.helpBtnText, { color: Colors.priceUp }]}>WhatsApp</Text>
-                            </TouchableOpacity>
-
-                            <View style={styles.helpBtnDivider} />
-
-                            <TouchableOpacity style={styles.helpBtn} onPress={() => setChatVisible(true)}>
-                                <Headset size={18} color={Colors.orange} />
-                                <Text style={[styles.helpBtnText, { color: Colors.orange }]}>Chat</Text>
-                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -430,11 +442,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
+        marginBottom: -20,
+        zIndex: 10,
+    },
+    headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        marginBottom: -20,
-        zIndex: 10,
     },
     backBtn: {
         width: 40,
@@ -473,6 +487,16 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingHorizontal: 20,
         paddingTop: 40,
+    },
+    rowLayout: {
+        flexDirection: 'row',
+        gap: 24,
+    },
+    leftColumn: {
+        flex: 1.6,
+    },
+    rightColumn: {
+        flex: 1,
     },
     section: {
         marginBottom: 24,

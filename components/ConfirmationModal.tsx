@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Modal, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, Animated, Dimensions, useWindowDimensions } from 'react-native';
 import { AlertTriangle, Info } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 
@@ -26,6 +26,8 @@ export default function ConfirmationModal({
     cancelText = "No",
     type = 'info'
 }: ConfirmationModalProps) {
+    const { width: windowWidth } = useWindowDimensions();
+    const isLargeScreen = windowWidth >= 768;
     const scaleValue = useRef(new Animated.Value(0)).current;
     const opacityValue = useRef(new Animated.Value(0)).current;
 
@@ -63,7 +65,11 @@ export default function ConfirmationModal({
     return (
         <Modal transparent visible={visible} animationType="none">
             <View style={styles.overlay}>
-                <Animated.View style={[styles.container, { opacity: opacityValue, transform: [{ scale: scaleValue }] }]}>
+                <Animated.View style={[
+                    styles.container,
+                    { opacity: opacityValue, transform: [{ scale: scaleValue }] },
+                    isLargeScreen && styles.largeContainer
+                ]}>
 
                     <View style={[styles.iconCircle, { backgroundColor: Colors.deepTeal + '15' }]}>
                         <Icon size={32} color={iconColor} />
@@ -110,6 +116,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 24,
         elevation: 10,
+    },
+    largeContainer: {
+        maxWidth: 500,
+        width: '90%',
     },
     iconCircle: {
         width: 64,

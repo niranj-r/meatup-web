@@ -11,6 +11,7 @@ import {
   StatusBar,
   Image,
   Linking,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -33,6 +34,10 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; icon: any; color: stri
 };
 
 export default function OrdersScreen() {
+  const { width: windowWidth } = useWindowDimensions();
+  const isTablet = windowWidth >= 768;
+  const contentMaxWidth = 1200;
+
   const { orders, cancelOrder } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -60,7 +65,7 @@ export default function OrdersScreen() {
   // Custom Header
   const renderHeader = () => (
     <View style={[styles.headerBg, { paddingTop: insets.top }]}>
-      <View style={styles.headerContent}>
+      <View style={[styles.headerContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
         <Text style={styles.headerTitle}>My Orders</Text>
         <TouchableOpacity onPress={handleSupportPress} style={styles.supportButton}>
           <Headset size={24} color={Colors.cream} />
@@ -91,14 +96,15 @@ export default function OrdersScreen() {
       {renderHeader()}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.ordersList}>
+        <View style={[styles.ordersList, isTablet && styles.rowGrid]}>
           {orders.map((order) => (
             <OrderCard
               key={order.id}
               order={order}
+              isTablet={isTablet}
               onCancel={attemptCancel}
               onPress={() => router.push(`/order/${order.id}` as any)}
             />
@@ -126,12 +132,33 @@ export default function OrdersScreen() {
   );
 }
 
-function OrderCard({ order, onCancel, onPress }: { order: Order; onCancel: (id: string) => void; onPress: () => void }) {
+function OrderCard({
+  order,
+  onCancel,
+  onPress,
+  isTablet
+}: {
+  order: Order;
+  onCancel: (id: string) => void;
+  onPress: () => void;
+  isTablet: boolean;
+}) {
   const config = STATUS_CONFIG[order.status];
   const Icon = config.icon;
 
+  const { width: windowWidth } = useWindowDimensions();
+  const contentMaxWidth = 1100;
+  const gap = 20;
+  const horizontalPadding = 20;
+  const availableWidth = Math.min(windowWidth, contentMaxWidth) - (horizontalPadding * 2);
+  const cardWidth = isTablet ? (availableWidth - gap) / 2 : '100%';
+
   return (
-    <TouchableOpacity style={styles.orderCard} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={[styles.orderCard, { width: cardWidth }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
       {/* Card Header */}
       <View style={styles.cardHeader}>
         <View style={{ flex: 1 }}>
@@ -303,6 +330,10 @@ const styles = StyleSheet.create({
   },
   ordersList: {
     gap: 20,
+  },
+  rowGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
 
   // Empty State

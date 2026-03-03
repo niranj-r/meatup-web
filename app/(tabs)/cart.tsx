@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,6 +18,10 @@ import Colors from '@/constants/colors';
 import { useApp } from '@/contexts/AppContext';
 
 export default function CartScreen() {
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= 1024;
+  const contentMaxWidth = 1200;
+
   const router = useRouter();
   const { cart, addToCart, removeFromCart, cartTotal, user } = useApp();
   const insets = useSafeAreaInsets();
@@ -27,7 +32,7 @@ export default function CartScreen() {
   // Custom Header Component
   const renderHeader = () => (
     <View style={[styles.headerBg, { paddingTop: insets.top }]}>
-      <View style={styles.headerContent}>
+      <View style={[styles.headerContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
         <Text style={styles.headerTitle}>My Cart</Text>
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>{cart.length} items</Text>
@@ -65,110 +70,128 @@ export default function CartScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
         showsVerticalScrollIndicator={false}
       >
-        {!user.is_first_order_completed && (
-          <View style={styles.discountBanner}>
-            <View style={styles.discountIconContainer}>
-              <TicketPercent size={24} color={Colors.white} />
+        <View style={isDesktop ? styles.rowLayout : null}>
+          <View style={isDesktop ? styles.leftColumn : null}>
+            {!user.is_first_order_completed && (
+              <View style={styles.discountBanner}>
+                <View style={styles.discountIconContainer}>
+                  <TicketPercent size={24} color={Colors.white} />
+                </View>
+                <View style={styles.discountContent}>
+                  <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
+                  <Text style={styles.discountSubtitle}>
+                    You'll save 10% on this order as a welcome gift.
+                  </Text>
+                </View>
+                <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
+              </View>
+            )}
+
+            <View style={styles.cartList}>
+              {cart.map((item, index) => (
+                <View key={`${item.product.id}-${item.weight}-${index}`} style={styles.cartCard}>
+                  <Image source={{ uri: item.product.image }} style={styles.itemImage} />
+
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
+                    <Text style={styles.itemVariant}>
+                      {item.weight}kg {item.cuttingType ? `• ${item.cuttingType}` : ''}
+                    </Text>
+                    <Text style={styles.itemPrice}>
+                      ₹{(item.product.current_price * item.weight * item.quantity).toFixed(2)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.controls}>
+                    <TouchableOpacity
+                      style={styles.controlBtn}
+                      onPress={() => removeFromCart(item.product.id, item.weight, item.cuttingType)}
+                    >
+                      {item.quantity === 1 ? (
+                        <Trash2 size={16} color={Colors.priceDown} />
+                      ) : (
+                        <Minus size={16} color={Colors.charcoal} />
+                      )}
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={styles.controlBtn}
+                      onPress={() => addToCart(item.product.id, 1, item.weight, item.cuttingType!)}
+                    >
+                      <Plus size={16} color={Colors.charcoal} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
             </View>
-            <View style={styles.discountContent}>
-              <Text style={styles.discountTitle}>First Order Offer Applied!</Text>
-              <Text style={styles.discountSubtitle}>
-                You'll save 10% on this order as a welcome gift.
-              </Text>
-            </View>
-            <Sparkles size={24} color={Colors.cream} style={{ opacity: 0.8 }} />
           </View>
-        )}
 
-        <View style={styles.cartList}>
-          {cart.map((item, index) => (
-            <View key={`${item.product.id}-${item.weight}-${index}`} style={styles.cartCard}>
-              <Image source={{ uri: item.product.image }} style={styles.itemImage} />
+          <View style={isDesktop ? styles.rightColumn : null}>
+            <View style={[styles.summaryCard, isDesktop && Platform.OS === 'web' && styles.stickySummary]}>
+              <Text style={styles.summaryTitle}>Bill Summary</Text>
 
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
-                <Text style={styles.itemVariant}>
-                  {item.weight}kg {item.cuttingType ? `• ${item.cuttingType}` : ''}
-                </Text>
-                <Text style={styles.itemPrice}>
-                  ₹{(item.product.current_price * item.weight * item.quantity).toFixed(2)}
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>₹{cartTotal.toFixed(2)}</Text>
+              </View>
+
+              {firstOrderDiscount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, styles.discountLabel]}>First Order Discount (10%)</Text>
+                  <Text style={[styles.summaryValue, styles.discountValue]}>-₹{firstOrderDiscount.toFixed(2)}</Text>
+                </View>
+              )}
+
+              <View style={styles.divider} />
+
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total Payable</Text>
+                <Text style={styles.totalValue}>₹{finalTotal.toFixed(2)}</Text>
+              </View>
+
+              <View style={styles.pointsBadge}>
+                <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
+                <Text style={styles.pointsText}>
+                  You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0))}</Text> Meat Points
                 </Text>
               </View>
 
-              <View style={styles.controls}>
+              {isDesktop && (
                 <TouchableOpacity
-                  style={styles.controlBtn}
-                  onPress={() => removeFromCart(item.product.id, item.weight, item.cuttingType)}
+                  style={[styles.checkoutBtn, { marginTop: 24 }]}
+                  onPress={() => router.push('/checkout')}
                 >
-                  {item.quantity === 1 ? (
-                    <Trash2 size={16} color={Colors.priceDown} />
-                  ) : (
-                    <Minus size={16} color={Colors.charcoal} />
-                  )}
+                  <Text style={styles.checkoutBtnText}>Checkout</Text>
+                  <ArrowRight size={20} color={Colors.white} />
                 </TouchableOpacity>
-                <Text style={styles.quantityText}>{item.quantity}</Text>
-                <TouchableOpacity
-                  style={styles.controlBtn}
-                  onPress={() => addToCart(item.product.id, 1, item.weight, item.cuttingType!)}
-                >
-                  <Plus size={16} color={Colors.charcoal} />
-                </TouchableOpacity>
-              </View>
+              )}
             </View>
-          ))}
-        </View>
-
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Bill Summary</Text>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>₹{cartTotal.toFixed(2)}</Text>
-          </View>
-
-          {firstOrderDiscount > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, styles.discountLabel]}>First Order Discount (10%)</Text>
-              <Text style={[styles.summaryValue, styles.discountValue]}>-₹{firstOrderDiscount.toFixed(2)}</Text>
-            </View>
-          )}
-
-          <View style={styles.divider} />
-
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Total Payable</Text>
-            <Text style={styles.totalValue}>₹{finalTotal.toFixed(2)}</Text>
-          </View>
-
-          <View style={styles.pointsBadge}>
-            <Image source={require('../../assets/images/cp-profile.png')} style={styles.pointsIcon} resizeMode="contain" />
-            <Text style={styles.pointsText}>
-              You'll earn <Text style={{ fontWeight: 'bold' }}>{Math.floor(cart.reduce((sum, item) => sum + item.weight * item.quantity, 0))}</Text> Meat Points
-            </Text>
           </View>
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={styles.footer}>
-        <View style={styles.footerRow}>
-          <View>
-            <Text style={styles.footerLabel}>Total</Text>
-            <Text style={styles.footerTotal}>₹{finalTotal.toFixed(2)}</Text>
+      {!isDesktop && (
+        <View style={styles.footer}>
+          <View style={styles.footerRow}>
+            <View>
+              <Text style={styles.footerLabel}>Total</Text>
+              <Text style={styles.footerTotal}>₹{finalTotal.toFixed(2)}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.checkoutBtn}
+              onPress={() => router.push('/checkout')}
+            >
+              <Text style={styles.checkoutBtnText}>Checkout</Text>
+              <ArrowRight size={20} color={Colors.white} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.checkoutBtn}
-            onPress={() => router.push('/checkout')}
-          >
-            <Text style={styles.checkoutBtnText}>Checkout</Text>
-            <ArrowRight size={20} color={Colors.white} />
-          </TouchableOpacity>
         </View>
-      </View>
+      )}
     </View>
   );
 }
@@ -509,5 +532,20 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
+  },
+  rowLayout: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  leftColumn: {
+    flex: 2,
+  },
+  rightColumn: {
+    flex: 1.2,
+  },
+  stickySummary: {
+    // @ts-ignore
+    position: 'sticky',
+    top: 20,
   },
 });

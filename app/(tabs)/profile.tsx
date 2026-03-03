@@ -9,7 +9,7 @@ import {
   Platform,
   StatusBar,
   Image,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -29,9 +29,11 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import StatusBanner from '@/components/StatusBanner';
 
-const { width } = Dimensions.get('window');
-
 export default function ProfileScreen() {
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= 1024;
+  const contentMaxWidth = 1100;
+
   const router = useRouter();
   const { user, walletHistory, updateUserProfile } = useApp();
   const insets = useSafeAreaInsets();
@@ -163,146 +165,154 @@ export default function ProfileScreen() {
         onClose={() => setBannerVisible(false)}
       />
       <View style={[styles.headerBg, { paddingTop: insets.top }]}>
-        <View style={styles.headerTopRow}>
-          <Text style={styles.screenTitle}>Profile</Text>
-          {!isGuest && (
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <LogOut size={24} color={Colors.cream} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.profileHeaderContent}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
+        <View style={{ maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }}>
+          <View style={styles.headerTopRow}>
+            <Text style={styles.screenTitle}>Profile</Text>
+            {!isGuest && (
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <LogOut size={24} color={Colors.cream} />
+              </TouchableOpacity>
+            )}
           </View>
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
 
-          {isGuest ? (
-            <TouchableOpacity style={styles.signInPill} onPress={() => router.push('/login')}>
-              <LogIn size={16} color={Colors.deepTeal} />
-              <Text style={styles.signInText}>Sign In / Sign Up</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.editProfilePill} onPress={() => setIsEditing(true)}>
-              <Edit2 size={12} color={Colors.white} />
-              <Text style={styles.editProfileText}>Edit Profile</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.profileHeaderContent}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
+            </View>
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+
+            {isGuest ? (
+              <TouchableOpacity style={styles.signInPill} onPress={() => router.push('/login')}>
+                <LogIn size={16} color={Colors.deepTeal} />
+                <Text style={styles.signInText}>Sign In / Sign Up</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.editProfilePill} onPress={() => setIsEditing(true)}>
+                <Edit2 size={12} color={Colors.white} />
+                <Text style={styles.editProfileText}>Edit Profile</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Membership Card */}
-        <View style={styles.membershipCard}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardLabel}>Member Card</Text>
-              <Text style={styles.cardPoints}>{user.wallet_points}</Text>
-              <Text style={styles.cardPointsLabel}>Meat Points</Text>
-            </View>
-            <View style={styles.cardIconContainer}>
-              <Image source={require('../../assets/images/cp-profile.png')} style={styles.cardIcon} resizeMode="contain" />
-            </View>
-          </View>
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardFooterText}>1 Point = ₹1 • Redeemable at checkout</Text>
-          </View>
-        </View>
-
-        {/* Contact Info Section */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <View style={styles.iconCircle}>
-                <Mail size={18} color={Colors.deepTeal} />
+        <View style={isDesktop ? styles.rowLayout : null}>
+          <View style={isDesktop ? styles.leftColumn : null}>
+            {/* Membership Card */}
+            <View style={styles.membershipCard}>
+              <View style={styles.cardHeader}>
+                <View>
+                  <Text style={styles.cardLabel}>Member Card</Text>
+                  <Text style={styles.cardPoints}>{user.wallet_points}</Text>
+                  <Text style={styles.cardPointsLabel}>Meat Points</Text>
+                </View>
+                <View style={styles.cardIconContainer}>
+                  <Image source={require('../../assets/images/cp-profile.png')} style={styles.cardIcon} resizeMode="contain" />
+                </View>
               </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{user.email}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <View style={styles.iconCircle}>
-                <Phone size={18} color={Colors.deepTeal} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{user.phone || 'Add phone number'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.infoRow}>
-              <View style={styles.iconCircle}>
-                <MapPin size={18} color={Colors.deepTeal} />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Address</Text>
-                <Text style={styles.infoValue} numberOfLines={2}>
-                  {user.address || 'Add delivery address'}
-                </Text>
+              <View style={styles.cardFooter}>
+                <Text style={styles.cardFooterText}>1 Point = ₹1 • Redeemable at checkout</Text>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Transaction History */}
-        {walletHistory.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.infoCard}>
-              {walletHistory.map((t, index) => (
-                <View key={t.id}>
-                  <View style={styles.historyItem}>
-                    <View
-                      style={[
-                        styles.historyIcon,
-                        { backgroundColor: t.type === 'earned' ? Colors.priceUp + '15' : Colors.priceDown + '15' },
-                      ]}
-                    >
-                      {t.type === 'earned' ? (
-                        <TrendingUp size={18} color={Colors.priceUp} />
-                      ) : (
-                        <TrendingDown size={18} color={Colors.priceDown} />
-                      )}
-                    </View>
-                    <View style={styles.historyContent}>
-                      <Text style={styles.historyDesc}>{t.description}</Text>
-                      <Text style={styles.historyDate}>
-                        {new Date(t.date).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.historyAmount,
-                        { color: t.type === 'earned' ? Colors.priceUp : Colors.priceDown },
-                      ]}
-                    >
-                      {t.type === 'earned' ? '+' : '-'}
-                      {t.amount}
+          <View style={isDesktop ? styles.rightColumn : null}>
+            {/* Contact Info Section */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Contact Information</Text>
+              <View style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <View style={styles.iconCircle}>
+                    <Mail size={18} color={Colors.deepTeal} />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Email</Text>
+                    <Text style={styles.infoValue}>{user.email}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconCircle}>
+                    <Phone size={18} color={Colors.deepTeal} />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Phone</Text>
+                    <Text style={styles.infoValue}>{user.phone || 'Add phone number'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconCircle}>
+                    <MapPin size={18} color={Colors.deepTeal} />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Address</Text>
+                    <Text style={styles.infoValue} numberOfLines={2}>
+                      {user.address || 'Add delivery address'}
                     </Text>
                   </View>
-                  {index < walletHistory.length - 1 && <View style={styles.divider} />}
                 </View>
-              ))}
+              </View>
             </View>
+
+            {/* Transaction History */}
+            {walletHistory.length > 0 && (
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
+                <View style={styles.infoCard}>
+                  {walletHistory.map((t, index) => (
+                    <View key={t.id}>
+                      <View style={styles.historyItem}>
+                        <View
+                          style={[
+                            styles.historyIcon,
+                            { backgroundColor: t.type === 'earned' ? Colors.priceUp + '15' : Colors.priceDown + '15' },
+                          ]}
+                        >
+                          {t.type === 'earned' ? (
+                            <TrendingUp size={18} color={Colors.priceUp} />
+                          ) : (
+                            <TrendingDown size={18} color={Colors.priceDown} />
+                          )}
+                        </View>
+                        <View style={styles.historyContent}>
+                          <Text style={styles.historyDesc}>{t.description}</Text>
+                          <Text style={styles.historyDate}>
+                            {new Date(t.date).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.historyAmount,
+                            { color: t.type === 'earned' ? Colors.priceUp : Colors.priceDown },
+                          ]}
+                        >
+                          {t.type === 'earned' ? '+' : '-'}
+                          {t.amount}
+                        </Text>
+                      </View>
+                      {index < walletHistory.length - 1 && <View style={styles.divider} />}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
-        )}
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -624,5 +634,15 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  rowLayout: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  leftColumn: {
+    flex: 1,
+  },
+  rightColumn: {
+    flex: 1.8,
   },
 });
