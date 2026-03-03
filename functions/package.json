@@ -1,0 +1,21 @@
+{
+    "name": "functions",
+    "description": "Cloud Functions for Firebase",
+    "scripts": {
+        "serve": "npx firebase-tools serve --only functions",
+        "shell": "npx firebase-tools functions:shell",
+        "start": "npm run shell",
+        "deploy": "npx firebase-tools deploy --only functions",
+        "logs": "npx firebase-tools functions:log"
+    },
+    "engines": {
+        "node": "18"
+    },
+    "main": "index.js",
+    "dependencies": {
+        "firebase-admin": "^12.6.0",
+        "firebase-functions": "^6.0.0",
+        "razorpay": "^2.9.4"
+    },
+    "private": true
+}

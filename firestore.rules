@@ -1,0 +1,41 @@
+
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is accessing their own data
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Products:
+    // - Everyone can read
+    // - Authenticated users can create (for seeding purposes in this demo)
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isAuthenticated(); 
+      allow update, delete: if false; // Lock down modifications for now
+    }
+    
+    // Users:
+    // - Users can read and write their own profile
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Orders:
+    // - Users can create orders
+    // - Users can read their own orders
+    // - Users can cancel their own orders (update status)
+    match /orders/{orderId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated(); // Allow delivery personnel to access
+    }
+  }
+}
